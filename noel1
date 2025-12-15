@@ -405,48 +405,38 @@ photoFiles.forEach((f, i) => photoTextures[i] = loader.load(f));
             hands.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
             hands.onResults(results => {
-                ctx.clearRect(0,0,100,75); ctx.drawImage(results.image, 0, 0, 100, 75);
+    ctx.clearRect(0,0,100,75);
 
-                if(results.multiHandLandmarks.length > 0) {
-                    const lm = results.multiHandLandmarks[0];
-                    handX = lm[9].x; 
+    // ✅ FIX lỗi trang trắng: chỉ vẽ khi có frame camera
+    if (results.image) {
+        ctx.drawImage(results.image, 0, 0, 100, 75);
+    }
 
-                    const tips = [8,12,16,20];
-                    const wrist = lm[0];
-                    let openDist = 0;
-                    tips.forEach(i => openDist += Math.hypot(lm[i].x-wrist.x, lm[i].y-wrist.y));
-                    const avgDist = openDist / 4;
-                    const pinchDist = Math.hypot(lm[4].x-lm[8].x, lm[4].y-lm[8].y);
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const lm = results.multiHandLandmarks[0];
+        handX = lm[9].x; 
 
-                    if (avgDist < 0.25) { 
-                        state = 'TREE'; 
-                        statusDiv.innerText = "✊ Thu Cây Thông"; statusDiv.style.color = "#FFD700";
-                    } else if (pinchDist < 0.05) {
-                        state = 'PHOTO';
-                        statusDiv.innerText = "👌 Xem Ảnh"; statusDiv.style.color = "#00FFFF";
-                    } else {
-                        state = 'EXPLODE'; 
-                        statusDiv.innerText = "🖐 Bung Quà & Ảnh"; statusDiv.style.color = "#FFA500";
-                    }
-                } else {
-                    state = 'TREE'; 
-                    statusDiv.innerText = "🎄 Giang Sinh An Lanh 🎄"; statusDiv.style.color = "#FFF";
-                }
-            });
+        const tips = [8,12,16,20];
+        const wrist = lm[0];
+        let openDist = 0;
+        tips.forEach(i => openDist += Math.hypot(lm[i].x - wrist.x, lm[i].y - wrist.y));
+        const avgDist = openDist / 4;
+        const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
 
-            const cameraUtils = new Camera(video, {
-                onFrame: async () => {
-                    frameCnt++; if(frameCnt%3 !== 0) return; 
-                    await hands.send({image: video});
-                }, width: 320, height: 240
-            });
-            cameraUtils.start();
+        if (avgDist < 0.25) { 
+            state = 'TREE'; 
+            statusDiv.innerText = "✊ Thu Cây Thông";
+            statusDiv.style.color = "#FFD700";
+        } else if (pinchDist < 0.05) {
+            state = 'PHOTO';
+            statusDiv.innerText = "👌 Xem Ảnh";
+            statusDiv.style.color = "#00FFFF";
+        } else {
+            state = 'EXPLODE'; 
+            statusDiv.innerText = "🖐 Bung Quà & Ảnh";
+            statusDiv.style.color = "#FFA500";
         }
-
-        window.addEventListener('resize', () => {
-            if(camera) { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
-        });
-        function logError(e) { document.getElementById('error-log').style.display='block'; document.getElementById('error-log').innerText+=e+"\n"; }
-    </script>
-</body>
-</html>
+    } else {
+        state = 'TREE'; 
+        statusDiv.innerText = "🎄 Giang Sinh An Lanh 🎄";
+        statusDiv.style.color = "#FFF"
